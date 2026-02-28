@@ -96,7 +96,14 @@ Posts.getPostIndices = async function (posts, uid) {
 };
 
 Posts.anonymizePost = function (post, isAdmin) {
-	if (post && post.anonymous === 1 && !isAdmin) {
+	const isAnonymous = post && (
+		post.anonymous === 1 ||
+		post.anonymous === true ||
+		post.anonymous === '1' ||
+		post.anonymous === 'true' ||
+		post.anonymous === 'on'
+	);
+	if (isAnonymous && !isAdmin) {
 		post.uid = 0;
 		post.user = {
 			uid: 0,

@@ -164,7 +164,14 @@ async function anonymizeTopicAuthorIfNeeded(topicData, uid) {
 		mainPost = await posts.getPostFields(topicData.mainPid, ['anonymous']);
 	}
 
-	if (parseInt(mainPost && mainPost.anonymous, 10) !== 1) {
+	const isAnonymousMainPost = mainPost && (
+		mainPost.anonymous === 1 ||
+		mainPost.anonymous === true ||
+		mainPost.anonymous === '1' ||
+		mainPost.anonymous === 'true' ||
+		mainPost.anonymous === 'on'
+	);
+	if (!isAnonymousMainPost) {
 		return;
 	}
 

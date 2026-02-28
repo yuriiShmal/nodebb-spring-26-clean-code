@@ -88,7 +88,12 @@ Topics.getTopicsByTids = async function (tids, options) {
 		async function loadMainPostAnonymousFlags() {
 			const mainPids = topics.filter(Boolean).map(t => t.mainPid);
 			const postData = await posts.getPostsFields(mainPids, ['pid', 'anonymous']);
-			return _.zipObject(mainPids, postData.map(post => post && post.anonymous === 1));
+			return _.zipObject(mainPids, postData.map((post) => {
+				if (!post) {
+					return false;
+				}
+				return post.anonymous === 1 || post.anonymous === true || post.anonymous === '1' || post.anonymous === 'true' || post.anonymous === 'on';
+			}));
 		}
 
 		async function loadShowfullnameSettings() {
