@@ -1914,6 +1914,32 @@ describe('Controllers', () => {
 			assert.strictEqual(await posts.getPostField(replyPid, 'anonymous'), 1);
 		});
 
+		it('should persist anonymous flag when composer anonymous value is "1"', async () => {
+			await meta.configs.set('allowAnonymousPosts', true);
+
+			const topicTitle = `anonymous topic numeric ${Date.now()}`;
+			const topicResult = await request.post(`${nconf.get('url')}/compose`, {
+				body: {
+					cid: cid,
+					title: topicTitle,
+					content: 'anonymous topic numeric content',
+					anonymous: '1',
+				},
+				jar: jar,
+				maxRedirect: 0,
+				redirect: 'manual',
+				headers: {
+					'x-csrf-token': csrf_token,
+				},
+			});
+
+			assert.equal(topicResult.response.statusCode, 302);
+			const topicPath = topicResult.response.headers.location;
+			const topicTid = parseInt(topicPath.split('/topic/')[1].split('/')[0], 10);
+			const mainPid = await topics.getTopicField(topicTid, 'mainPid');
+			assert.strictEqual(await posts.getPostField(mainPid, 'anonymous'), 1);
+		});
+
 		it('should create a new topic and reply by composer route', async () => {
 			let result = await request.post(`${nconf.get('url')}/compose`, {
 				body: {
