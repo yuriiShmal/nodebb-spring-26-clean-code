@@ -43,3 +43,29 @@ This feature forces all users in the instructor and TA groups to have a badge (e
 #### Unit Testing
 
 In `test/user.js`, I wrote the test 'should force instructor group onto groupTitleArray even if user deselects it' to test functionality. We set up the test by creating and joining the groups `ta`, `instructor`, and `other-group`. The subsequent `User.updateProfile(testUid, { groupTitle: '[]', uid: testUid })` call is akin to the user going into their settings and setting the group badge display to be false for all groups. We then verify that when getting user data, the `ta` and `instructor` groups are still present in the `groupTitleArray` field. This test covers all of the changed lines of code.
+
+### Anonymous posting
+
+Users can optionally mark a post as anonymous when creating a new topic or reply (if anonymous posting is enabled by an administrator).
+
+#### What is anonymized
+
+- **Topic view**: Anonymous posts show `Anonymous` as the username with a `?` avatar, and profile links are disabled.
+- **Parent/quoted posts**: When replying to an anonymous post, the parent preview shows `Anonymous` instead of the real author.
+- **Reply avatar previews**: The small avatar previews shown below a post display `Anonymous` for anonymous replies.
+- **Category teasers**: The recent post preview on the categories page displays `Anonymous` for anonymous posts.
+- **User profile pages**: Anonymous posts are excluded from `/user/:slug/posts` and profile latest/best-post style listings for non-admin, non-self viewers.
+- **Post count**: The post count shown on user profile pages excludes anonymous posts for non-admin, non-self viewers.
+
+#### User Testing
+
+1. Sign in as an admin user.
+1. Go to **Admin → Settings → Post** and ensure **Allow anonymous posting** is enabled.
+1. Open a topic or create a new topic and launch the composer.
+1. Verify there is a **Post anonymously** checkbox below the post content textarea (unchecked by default).
+1. Enter content, check **Post anonymously**, and submit.
+1. As admin, verify the post was created and can be moderated normally.
+1. Sign in as a regular (non-admin) user and view the same topic.
+1. Verify that the anonymous post shows `Anonymous` with a `?` avatar and no profile link.
+1. Open the regular user-facing profile view for the original author and verify the anonymous post does not appear in post history and is excluded from displayed post counts.
+1. Go to the categories page and verify category teaser/preview data shows `Anonymous` when the latest post is anonymous.
