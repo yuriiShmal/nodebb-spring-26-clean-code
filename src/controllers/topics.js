@@ -89,6 +89,7 @@ topicsController.get = async function getTopic(req, res, next) {
 	const { start, stop } = calculateStartStop(currentPage, postIndex, settings);
 
 	await topics.getTopicWithPosts(topicData, set, req.uid, start, stop, reverse);
+	await anonymizeTopicAuthorIfNeeded(topicData, req.uid);
 
 	topics.modifyPostsByPrivilege(topicData, userPrivileges);
 	topicData.tagWhitelist = categories.filterTagWhitelist(topicData.tagWhitelist, userPrivileges.isAdminOrMod);
@@ -151,6 +152,38 @@ topicsController.get = async function getTopic(req, res, next) {
 
 	res.render('topic', topicData);
 };
+
+async function anonymizeTopicAuthorIfNeeded(topicData, uid) {
+	const isAdmin = await privileges.users.isAdministrator(uid);
+	if (isAdmin) {
+		return;
+	}
+
+	let mainPost = topicData.posts.find(p => parseInt(p.index, 10) === 0);
+	if (!mainPost) {
+		mainPost = await posts.getPostFields(topicData.mainPid, ['anonymous']);
+	}
+
+	const isAnonymousMainPost = mainPost && (
+		mainPost.anonymous === 1 ||
+		mainPost.anonymous === true ||
+		mainPost.anonymous === '1' ||
+		mainPost.anonymous === 'true' ||
+		mainPost.anonymous === 'on'
+	);
+	if (!isAnonymousMainPost) {
+		return;
+	}
+
+	const anonymizedTopic = {
+		uid: topicData.uid,
+		anonymous: 1,
+		user: topicData.user,
+	};
+	posts.anonymizePost(anonymizedTopic, false);
+	topicData.uid = anonymizedTopic.uid;
+	topicData.user = anonymizedTopic.user;
+}
 
 function generateQueryString(query) {
 	const qString = qs.stringify(query);
