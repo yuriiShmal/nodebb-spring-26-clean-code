@@ -2038,6 +2038,47 @@ describe('Topic\'s', () => {
 			assert.equal(teaser.content, 'content 2');
 			await User.blocks.remove(blockedUid, adminUid);
 		});
+
+		it('should anonymize teaser when anonymous flag is stored as string', async () => {
+			const anonUser = await User.create({ username: `anon-teaser-${Date.now()}` });
+			const result = await topics.post({
+				uid: anonUser,
+				title: `anon teaser topic ${Date.now()}`,
+				content: 'anon teaser content',
+				cid: categoryObj.cid,
+				anonymous: true,
+			});
+			await posts.setPostField(result.postData.pid, 'anonymous', 'on');
+
+			meta.config.teaserPost = 'first';
+			const teaser = await topics.getTeaser(result.topicData.tid, 0);
+			assert(teaser);
+			assert.strictEqual(teaser.uid, 0);
+			assert.strictEqual(teaser.user.username, 'Anonymous');
+		});
+
+		it('should anonymize topic and teaser users for anonymous topic in topic lists', async () => {
+			const anonUser = await User.create({ username: `anon-list-${Date.now()}` });
+			const result = await topics.post({
+				uid: anonUser,
+				title: `anon list topic ${Date.now()}`,
+				content: 'anon list content',
+				cid: categoryObj.cid,
+				anonymous: true,
+			});
+			await topics.reply({
+				uid: anonUser,
+				content: 'regular reply content',
+				tid: result.topicData.tid,
+				anonymous: false,
+			});
+			const listTopics = await topics.getTopicsByTids([result.topicData.tid], 0);
+			assert.strictEqual(listTopics[0].uid, 0);
+			assert.strictEqual(listTopics[0].user.username, 'Anonymous');
+			assert(listTopics[0].teaser);
+			assert.strictEqual(listTopics[0].teaser.uid, 0);
+			assert.strictEqual(listTopics[0].teaser.user.username, 'Anonymous');
+		});
 	});
 
 	describe('tag privilege', () => {

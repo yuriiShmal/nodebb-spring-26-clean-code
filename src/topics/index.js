@@ -85,6 +85,17 @@ Topics.getTopicsByTids = async function (tids, options) {
 			return postData.map(p => p.handle);
 		}
 
+		async function loadMainPostAnonymousFlags() {
+			const mainPids = topics.filter(Boolean).map(t => t.mainPid);
+			const postData = await posts.getPostsFields(mainPids, ['pid', 'anonymous']);
+			return _.zipObject(mainPids, postData.map((post) => {
+				if (!post) {
+					return false;
+				}
+				return post.anonymous === 1 || post.anonymous === true || post.anonymous === '1' || post.anonymous === 'true' || post.anonymous === 'on';
+			}));
+		}
+
 		async function loadShowfullnameSettings() {
 			if (meta.config.hideFullname) {
 				return uids.map(() => ({ showfullname: false }));
@@ -96,7 +107,7 @@ Topics.getTopicsByTids = async function (tids, options) {
 			return data;
 		}
 
-		const [teasers, users, userSettings, categoriesData, guestHandles, thumbs, isTopicEndorsed] = await Promise.all([
+		const [teasers, users, userSettings, categoriesData, guestHandles, thumbs, isTopicEndorsed, mainPostAnonymous] = await Promise.all([
 			Topics.getTeasers(topics, options),
 			user.getUsersFields(uids, ['uid', 'username', 'fullname', 'userslug', 'reputation', 'postcount', 'picture', 'signature', 'banned', 'status']),
 			loadShowfullnameSettings(),
@@ -104,6 +115,7 @@ Topics.getTopicsByTids = async function (tids, options) {
 			loadGuestHandles(),
 			Topics.thumbs.load(topics),
 			Topics.getEndorsedStatus(topics),
+			loadMainPostAnonymousFlags(),
 		]);
 
 		users.forEach((userObj, idx) => {
@@ -121,15 +133,17 @@ Topics.getTopicsByTids = async function (tids, options) {
 			tidToGuestHandle: _.zipObject(guestTopics.map(t => t.tid), guestHandles),
 			thumbs,
 			isTopicEndorsed,
+			mainPostAnonymous,
 		};
 	}
 
-	const [result, hasRead, followData, bookmarks, callerSettings] = await Promise.all([
+	const [result, hasRead, followData, bookmarks, callerSettings, isAdmin] = await Promise.all([
 		loadTopics(),
 		Topics.hasReadTopics(tids, uid),
 		Topics.getFollowData(tids, uid),
 		Topics.getUserBookmarks(tids, uid),
 		user.getSettings(uid),
+		privileges.users.isAdministrator(uid),
 	]);
 
 	const sortNewToOld = callerSettings.topicPostSort === 'newest_to_oldest';
@@ -142,7 +156,27 @@ Topics.getTopicsByTids = async function (tids, options) {
 				topic.user.username = validator.escape(result.tidToGuestHandle[topic.tid]);
 				topic.user.displayname = topic.user.username;
 			}
+			if (result.mainPostAnonymous[topic.mainPid]) {
+				const anonymizedTopic = {
+					uid: topic.uid,
+					anonymous: 1,
+					user: topic.user,
+				};
+				posts.anonymizePost(anonymizedTopic, isAdmin === true);
+				topic.uid = anonymizedTopic.uid;
+				topic.user = anonymizedTopic.user;
+			}
 			topic.teaser = result.teasers[i] || null;
+			if (topic.teaser && result.mainPostAnonymous[topic.mainPid]) {
+				const anonymizedTeaser = {
+					uid: topic.teaser.uid,
+					anonymous: 1,
+					user: topic.teaser.user,
+				};
+				posts.anonymizePost(anonymizedTeaser, isAdmin === true);
+				topic.teaser.uid = anonymizedTeaser.uid;
+				topic.teaser.user = anonymizedTeaser.user;
+			}
 			topic.endorsed = result.isTopicEndorsed[i];
 			topic.isOwner = topic.uid === parseInt(uid, 10);
 			topic.ignored = followData[i].ignoring;
