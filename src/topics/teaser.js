@@ -8,6 +8,7 @@ const meta = require('../meta');
 const user = require('../user');
 const posts = require('../posts');
 const plugins = require('../plugins');
+const privileges = require('../privileges');
 const utils = require('../utils');
 
 module.exports = function (Topics) {
@@ -42,9 +43,10 @@ module.exports = function (Topics) {
 			}
 		});
 
-		const [allPostData, callerSettings] = await Promise.all([
-			posts.getPostsFields(teaserPids, ['pid', 'uid', 'timestamp', 'tid', 'content', 'sourceContent']),
+		const [allPostData, callerSettings, isAdmin] = await Promise.all([
+			posts.getPostsFields(teaserPids, ['pid', 'uid', 'timestamp', 'tid', 'content', 'sourceContent', 'anonymous']),
 			user.getSettings(uid),
+			privileges.users.isAdministrator(uid),
 		]);
 		let postData = allPostData.filter(post => post && post.pid);
 		postData = await handleBlocks(uid, postData);
@@ -58,13 +60,14 @@ module.exports = function (Topics) {
 			users[user.uid] = user;
 		});
 		postData.forEach((post) => {
+			posts.anonymizePost(post, isAdmin === true);
 			// If the post author isn't represented in the retrieved users' data,
 			// then it means they were deleted, assume guest.
 			if (!users.hasOwnProperty(post.uid)) {
 				post.uid = 0;
 			}
 
-			post.user = users[post.uid];
+			post.user = users[post.uid] || post.user;
 			post.timestampISO = utils.toISOString(post.timestamp);
 			tidToPost[post.tid] = post;
 		});
@@ -131,7 +134,7 @@ module.exports = function (Topics) {
 				const mainPid = await Topics.getTopicField(postData.tid, 'mainPid');
 				pids = [mainPid];
 			}
-			const prevPosts = await posts.getPostsFields(pids, ['pid', 'uid', 'timestamp', 'tid', 'content']);
+			const prevPosts = await posts.getPostsFields(pids, ['pid', 'uid', 'timestamp', 'tid', 'content', 'anonymous']);
 			isBlocked = prevPosts.every(checkBlocked);
 			start += postsPerIteration;
 			stop = start + postsPerIteration - 1;
