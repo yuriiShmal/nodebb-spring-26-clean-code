@@ -88,7 +88,12 @@ Topics.getTopicsByTids = async function (tids, options) {
 		async function loadMainPostAnonymousFlags() {
 			const mainPids = topics.filter(Boolean).map(t => t.mainPid);
 			const postData = await posts.getPostsFields(mainPids, ['pid', 'anonymous']);
-			return _.zipObject(mainPids, postData.map(post => post && post.anonymous === 1));
+			return _.zipObject(mainPids, postData.map((post) => {
+				if (!post) {
+					return false;
+				}
+				return post.anonymous === 1 || post.anonymous === true || post.anonymous === '1' || post.anonymous === 'true' || post.anonymous === 'on';
+			}));
 		}
 
 		async function loadShowfullnameSettings() {
@@ -162,6 +167,16 @@ Topics.getTopicsByTids = async function (tids, options) {
 				topic.user = anonymizedTopic.user;
 			}
 			topic.teaser = result.teasers[i] || null;
+			if (topic.teaser && result.mainPostAnonymous[topic.mainPid]) {
+				const anonymizedTeaser = {
+					uid: topic.teaser.uid,
+					anonymous: 1,
+					user: topic.teaser.user,
+				};
+				posts.anonymizePost(anonymizedTeaser, isAdmin === true);
+				topic.teaser.uid = anonymizedTeaser.uid;
+				topic.teaser.user = anonymizedTeaser.user;
+			}
 			topic.endorsed = result.isTopicEndorsed[i];
 			topic.isOwner = topic.uid === parseInt(uid, 10);
 			topic.ignored = followData[i].ignoring;
