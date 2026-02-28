@@ -165,6 +165,10 @@ Topics.getTopicsByTids = async function (tids, options) {
 				posts.anonymizePost(anonymizedTopic, isAdmin === true);
 				topic.uid = anonymizedTopic.uid;
 				topic.user = anonymizedTopic.user;
+				topic.username = anonymizedTopic.user && anonymizedTopic.user.username;
+				topic.displayname = anonymizedTopic.user && anonymizedTopic.user.displayname;
+				topic.userslug = anonymizedTopic.user && anonymizedTopic.user.userslug;
+				topic.picture = anonymizedTopic.user && anonymizedTopic.user.picture;
 			}
 			topic.teaser = result.teasers[i] || null;
 			if (topic.teaser && result.mainPostAnonymous[topic.mainPid]) {
@@ -176,6 +180,10 @@ Topics.getTopicsByTids = async function (tids, options) {
 				posts.anonymizePost(anonymizedTeaser, isAdmin === true);
 				topic.teaser.uid = anonymizedTeaser.uid;
 				topic.teaser.user = anonymizedTeaser.user;
+				topic.teaser.username = anonymizedTeaser.user && anonymizedTeaser.user.username;
+				topic.teaser.displayname = anonymizedTeaser.user && anonymizedTeaser.user.displayname;
+				topic.teaser.userslug = anonymizedTeaser.user && anonymizedTeaser.user.userslug;
+				topic.teaser.picture = anonymizedTeaser.user && anonymizedTeaser.user.picture;
 			}
 			topic.endorsed = result.isTopicEndorsed[i];
 			topic.isOwner = topic.uid === parseInt(uid, 10);

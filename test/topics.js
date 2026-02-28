@@ -2075,9 +2075,13 @@ describe('Topic\'s', () => {
 			const listTopics = await topics.getTopicsByTids([result.topicData.tid], 0);
 			assert.strictEqual(listTopics[0].uid, 0);
 			assert.strictEqual(listTopics[0].user.username, 'Anonymous');
+			assert.strictEqual(listTopics[0].username, 'Anonymous');
+			assert.strictEqual(listTopics[0].userslug, '');
 			assert(listTopics[0].teaser);
 			assert.strictEqual(listTopics[0].teaser.uid, 0);
 			assert.strictEqual(listTopics[0].teaser.user.username, 'Anonymous');
+			assert.strictEqual(listTopics[0].teaser.username, 'Anonymous');
+			assert.strictEqual(listTopics[0].teaser.userslug, '');
 		});
 	});
 
